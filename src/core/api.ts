@@ -82,8 +82,16 @@ export class API {
       }
     }
 
-    await this.db.saveDeviceTokenByKey(key, deviceToken);
+    if (deviceToken === 'deleted') {
+      await this.db.deleteDeviceByKey(key);
+      return buildSuccess({
+        key: key,
+        device_key: key,
+        device_token: 'deleted',
+      });
+    }
 
+    await this.db.saveDeviceTokenByKey(key, deviceToken);
     return buildSuccess({
       key: key,
       device_key: key,
