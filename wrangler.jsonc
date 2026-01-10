@@ -4,13 +4,8 @@
     "command": "npm run build:cf"
   },
   "compatibility_flags": ["nodejs_compat"],
-  "main": "./.cf-workers/functions/handler.js",
+  "main": "./dist/handler.js",
   "observability": {
     "enabled": true
-  },
-  "vars": {
-    "ALLOW_NEW_DEVICE": "true",
-    "ALLOW_QUERY_NUMS": "true",
-    "ROOT_PATH": "/"
   }
 }
