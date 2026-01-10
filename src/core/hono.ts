@@ -148,8 +148,19 @@ export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
     return c.json(await api.push(body));
   });
 
-  // compat old API
+  // compat v1 API
   registerV1(app as unknown as Hono, getAPI);
+
+  app.all(
+    '/',
+    () =>
+      new Response('ok', {
+        status: 200,
+        headers: {
+          'content-type': 'text/plain',
+        },
+      }),
+  );
 
   app.onError((err) => {
     if (err instanceof APIError) {
