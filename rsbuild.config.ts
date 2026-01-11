@@ -79,10 +79,11 @@ export default defineConfig({
               ? path.join(cwd, 'edge-functions', process.env.ROOT_PATH)
               : path.join(cwd, 'edge-functions');
             await fs.ensureDir(functions);
-            await fs.move(
-              path.join(dist, 'handler.js'),
-              path.join(functions, '[[default]].js'),
-            );
+            const target = path.join(functions, '[[default]].js');
+            if (await fs.pathExists(target)) {
+              await fs.remove(target);
+            }
+            await fs.move(path.join(dist, 'handler.js'), target);
           }
         });
       },
