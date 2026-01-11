@@ -5,6 +5,11 @@ import { getTimestamp, validateBasicAuth } from './utils';
 const parseParam = (t: string) =>
   decodeURIComponent(t.replaceAll('\\+', '%20'));
 
+const parseBody = async (c: Context): Promise<PushParameters> => {
+  const isJSON = c.req.header('Content-Type')?.startsWith('application/json');
+  return isJSON ? await c.req.json() : await c.req.parseBody();
+};
+
 const registerV1 = async (app: Hono, getAPI: () => API) => {
   app.get('/:device_key', async (c) =>
     c.json(
@@ -16,6 +21,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   app.post('/:device_key', async (c) =>
     c.json(
       await getAPI().push({
+        ...(await parseBody(c)),
         device_key: parseParam(c.req.param('device_key')),
       }),
     ),
@@ -135,18 +141,8 @@ export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
     return c.json(await api.info());
   });
 
-  // batch push
-  router.post('/push', async (c) => {
-    // is API v2?
-    const isAPIv2 = c.req
-      .header('Content-Type')
-      ?.startsWith('application/json');
-    const body: PushParameters = isAPIv2
-      ? await c.req.json()
-      : await c.req.parseBody();
-
-    return c.json(await api.push(body));
-  });
+  // base push
+  router.post('/push', async (c) => c.json(await api.push(await parseBody(c))));
 
   // compat v1 API
   registerV1(router as unknown as Hono, getAPI);
