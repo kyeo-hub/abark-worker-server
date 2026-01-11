@@ -115,6 +115,7 @@ export class API {
       build: '2025-12-03 10:51:22',
       arch: `js/${process.env.ENTRY}`,
       commit: '18d1037eab7a2310f595cfd31ea49b444f6133f2',
+      time: Date.now(),
       devices: devices,
     };
   }
