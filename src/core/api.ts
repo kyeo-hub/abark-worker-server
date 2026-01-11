@@ -14,7 +14,7 @@ export class APIError extends Error {
   }
 }
 
-const buildSuccess = (data: any, message = 'success') => ({
+const buildSuccess = (data?: any, message = 'success') => ({
   code: 200,
   message,
   timestamp: getTimestamp(),
@@ -101,7 +101,7 @@ export class API {
   }
 
   async ping() {
-    return buildSuccess({}, 'pong');
+    return buildSuccess(undefined, 'pong');
   }
 
   async info() {
@@ -113,7 +113,7 @@ export class API {
     return {
       version: 'v2.2.6',
       build: '2025-12-03 10:51:22',
-      arch: 'js',
+      arch: `js/${process.env.ENTRY}`,
       commit: '18d1037eab7a2310f595cfd31ea49b444f6133f2',
       devices: devices,
     };
@@ -265,7 +265,7 @@ export class API {
     const response = await push(this.db, deviceToken, headers, aps);
 
     if (response.status === 200) {
-      return buildSuccess({});
+      return buildSuccess(undefined);
     }
 
     let message: string;

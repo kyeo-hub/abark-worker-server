@@ -5,9 +5,9 @@ import { getTimestamp, validateBasicAuth } from './utils';
 const parseParam = (t: string) =>
   decodeURIComponent(t.replaceAll('\\+', '%20'));
 
-const parseBody = async (c: Context): Promise<PushParameters> => {
+const parseBody = async <T = any>(c: Context): Promise<T> => {
   const isJSON = c.req.header('Content-Type')?.startsWith('application/json');
-  return isJSON ? await c.req.json() : await c.req.parseBody();
+  return isJSON ? await c.req.json() : ((await c.req.parseBody()) as T);
 };
 
 const parseQuery = (c: Context, exclude?: Array<keyof PushParameters>) => {
@@ -148,9 +148,22 @@ export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
     await next();
   });
 
-  router.all('/register', async (c) => {
+  router.get('/register', async (c) => {
     return c.json(
-      await api.register(c.req.query('devicetoken'), c.req.query('key')),
+      await api.register(
+        c.req.query('device_token') || c.req.query('devicetoken'),
+        c.req.query('device_key') || c.req.query('key'),
+      ),
+    );
+  });
+
+  router.post('/register', async (c) => {
+    const body = await parseBody(c);
+    return c.json(
+      await api.register(
+        body.device_token || body.devicetoken,
+        body.device_key || body.key,
+      ),
     );
   });
 
