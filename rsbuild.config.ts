@@ -73,10 +73,11 @@ export default defineConfig({
       setup(api) {
         api.onAfterBuild(async () => {
           if (process.env.ENTRY === 'edgeone') {
+            const cwd = process.cwd();
             const dist = path.join(__dirname, 'dist');
             const functions = process.env.ROOT_PATH
-              ? path.join(dist, 'edge-functions', process.env.ROOT_PATH)
-              : path.join(dist, 'edge-functions');
+              ? path.join(cwd, 'edge-functions', process.env.ROOT_PATH)
+              : path.join(cwd, 'edge-functions');
             await fs.ensureDir(functions);
             await fs.move(
               path.join(dist, 'handler.js'),
