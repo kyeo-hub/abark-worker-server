@@ -36,6 +36,7 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 * `MAX_BATCH_PUSH_COUNT` 批量推送最大数量，默认不限制
 * `BASIC_AUTH` 是否启用 HTTP Basic Auth，默认不启用
 * `ROOT_PATH` 部署路径，默认为 `/`
+  * 例如：当你填写部署路径为 `/bark` 时，在 Bark App 中填写的服务器地址为 `https://你的域名/bark`，注意末尾不要有“/”
 
 ## 其他
 
