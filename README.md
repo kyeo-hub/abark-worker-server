@@ -6,13 +6,15 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 
 ## 安装使用
 
-### EdgeOne
-
-[部署教程](https://github.com/sylingd/bark-worker-server/discussions/2)
-
 ### 阿里云 ESA
 
 [部署教程](https://github.com/sylingd/bark-worker-server/discussions/3)
+
+### EdgeOne
+
+**经测试，EdgeOne 边缘函数无法连接 Apple Push 服务器**
+
+[部署教程](https://github.com/sylingd/bark-worker-server/discussions/2)
 
 ### Cloudflare Worker
 
@@ -22,7 +24,7 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 
 ## 已知问题
 
-* 因平台限制，批量推送功能存在最大上限。例如 Cloudflare Workers 每次最多推送 32 个设备。
+* 因平台限制，批量推送功能存在最大上限。
 * 因 KV 写入延迟，设备注册后，过一小段时间（几秒钟）才能开始推送。
 * 设备计数并不准确，仅供测试数据库使用，请勿依赖此数据。
 

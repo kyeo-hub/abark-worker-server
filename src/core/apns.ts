@@ -55,16 +55,14 @@ const generateAuthToken = async () => {
 };
 
 const getAuthToken = async (db: Database) => {
-  let authToken = await db.getAuthorizationToken();
-
+  const authToken = await db.getAuthorizationToken();
   if (authToken) {
-    return await authToken;
+    return authToken;
   }
 
-  authToken = await generateAuthToken();
-  await db.saveAuthorizationToken(authToken);
-
-  return authToken;
+  const newToken = await generateAuthToken();
+  await db.saveAuthorizationToken(newToken);
+  return newToken;
 };
 
 export const push = async (
