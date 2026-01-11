@@ -1,6 +1,5 @@
-import type { Env, Hono } from 'hono';
-import { API } from '../core/api';
-import { type BasicKV, Database } from '../core/db';
+import type { Env } from 'hono';
+import { type BasicKV, KVAdapter } from '../core/db/kv-adapter';
 import { createHono } from '../core/hono';
 import type { BasicEnv } from '../core/type';
 
@@ -16,8 +15,6 @@ interface ESAHonoEnv extends Env {
   Bindings: BasicEnv;
 }
 
-let hono: Hono<ESAHonoEnv>;
-
 // inject in build
 const env = {
   DB_NAME: process.env.DB_NAME || 'bark',
@@ -28,24 +25,17 @@ const env = {
   MAX_BATCH_PUSH_COUNT: process.env.MAX_BATCH_PUSH_COUNT,
 };
 
+const hono = createHono<ESAHonoEnv>({
+  db: new KVAdapter(new EdgeKV({ namespace: env.DB_NAME || 'bark' })),
+  allowNewDevice: env.ALLOW_NEW_DEVICE !== 'false',
+  allowQueryNums: env.ALLOW_QUERY_NUMS !== 'false',
+  maxBatchPushCount: Number(env.MAX_BATCH_PUSH_COUNT),
+  urlPrefix: env.URL_PREFIX || '/',
+  basicAuth: env.BASIC_AUTH,
+});
+
 export default {
   fetch(request: Request) {
-    if (!hono) {
-      hono = createHono<ESAHonoEnv>({
-        basePath: env.URL_PREFIX || '/',
-        createAPI: async () => {
-          return new API(
-            new Database(new EdgeKV({ namespace: env.DB_NAME || 'bark' })),
-            {
-              allowNewDevice: env.ALLOW_NEW_DEVICE !== 'false',
-              allowQueryNums: env.ALLOW_QUERY_NUMS !== 'false',
-              maxBatchPushCount: Number(env.MAX_BATCH_PUSH_COUNT),
-            },
-          );
-        },
-        getBasicAuth: () => env.BASIC_AUTH,
-      });
-    }
     return hono.fetch(request, env);
   },
 };

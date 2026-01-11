@@ -1,12 +1,17 @@
+import type { DBAdapter } from '../type';
+
 export interface BasicKV {
   get(key: string, options?: { type: 'json' | 'text' }): Promise<any>;
   put(key: string, value: string): Promise<void>;
   delete(key: string): Promise<void>;
 }
 
-export class Database {
+export class KVAdapter implements DBAdapter {
   kv: BasicKV;
   constructor(kv: BasicKV) {
+    if (!kv) {
+      throw new Error('kv database not found');
+    }
     this.kv = kv;
   }
 
@@ -48,10 +53,9 @@ export class Database {
     return this.kv.delete(`device_${deviceKey}`);
   }
 
-  async saveAuthorizationToken(token: string) {
-    const expireAt = Date.now() + 3000000; // 有效期是一小时，向下取一点
+  async saveAuthorizationToken(token: string, ttl: number) {
+    const expireAt = Date.now() + ttl;
     await this.kv.put('authToken', JSON.stringify({ token, expireAt }));
-    return token;
   }
 
   async getAuthorizationToken() {

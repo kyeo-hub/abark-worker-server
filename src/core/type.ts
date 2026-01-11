@@ -6,3 +6,23 @@ export type BasicEnv = Partial<{
   BASIC_AUTH: string;
   URL_PREFIX: string;
 }>;
+
+export type NullLike = null | undefined;
+
+export interface DBAdapter {
+  countAll(): Promise<number>;
+  deviceTokenByKey(key: string): Promise<string | NullLike>;
+  saveDeviceTokenByKey(key: string, token: string): Promise<void>;
+  deleteDeviceByKey(key: string): Promise<void>;
+  saveAuthorizationToken(token: string, ttl: number): Promise<void>;
+  getAuthorizationToken(): Promise<string | NullLike>;
+}
+
+export interface Options {
+  db: DBAdapter;
+  allowNewDevice: boolean;
+  allowQueryNums: boolean;
+  maxBatchPushCount: number;
+  basicAuth?: string;
+  urlPrefix?: string;
+}

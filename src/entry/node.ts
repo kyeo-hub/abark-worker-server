@@ -1,9 +1,6 @@
 import { serve } from '@hono/node-server';
-import type { Env, Hono } from 'hono';
-import { API } from '../core/api';
-import { type BasicKV, Database } from '../core/db';
+import { type BasicKV, KVAdapter } from '../core/db/kv-adapter';
 import { createHono } from '../core/hono';
-import type { BasicEnv } from '../core/type';
 
 class NodeKV implements BasicKV {
   kv: Record<string, string> = {};
@@ -24,20 +21,13 @@ class NodeKV implements BasicKV {
   }
 }
 
-interface ESAHonoEnv extends Env {
-  Bindings: BasicEnv;
-}
-
-const hono: Hono<ESAHonoEnv> = createHono<ESAHonoEnv>({
-  basePath: process.env.URL_PREFIX || '/',
-  createAPI: async () => {
-    return new API(new Database(new NodeKV()), {
-      allowNewDevice: process.env.ALLOW_NEW_DEVICE !== 'false',
-      allowQueryNums: process.env.ALLOW_QUERY_NUMS !== 'false',
-      maxBatchPushCount: Number(process.env.MAX_BATCH_PUSH_COUNT),
-    });
-  },
-  getBasicAuth: () => process.env.BASIC_AUTH,
+const hono = createHono({
+  db: new KVAdapter(new NodeKV()),
+  allowNewDevice: process.env.ALLOW_NEW_DEVICE !== 'false',
+  allowQueryNums: process.env.ALLOW_QUERY_NUMS !== 'false',
+  maxBatchPushCount: Number(process.env.MAX_BATCH_PUSH_COUNT),
+  urlPrefix: process.env.URL_PREFIX || '/',
+  basicAuth: process.env.BASIC_AUTH,
 });
 
 serve(hono, (info) => {

@@ -1,4 +1,4 @@
-import type { Database } from './db';
+import type { DBAdapter } from './type';
 import { base64ToArrayBuffer, getTimestamp } from './utils';
 
 const TOPIC = 'me.fin.bark';
@@ -54,19 +54,19 @@ const generateAuthToken = async () => {
   return AUTHENTICATION_TOKEN;
 };
 
-const getAuthToken = async (db: Database) => {
+const getAuthToken = async (db: DBAdapter) => {
   const authToken = await db.getAuthorizationToken();
   if (authToken) {
     return authToken;
   }
 
   const newToken = await generateAuthToken();
-  await db.saveAuthorizationToken(newToken);
+  await db.saveAuthorizationToken(newToken, 3000000); // 有效期是一小时，向下取一点
   return newToken;
 };
 
 export const push = async (
-  db: Database,
+  db: DBAdapter,
   deviceToken: string,
   headers: Record<string, string>,
   aps: any,

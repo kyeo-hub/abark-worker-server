@@ -1,5 +1,6 @@
 import { type Context, type Env, Hono } from 'hono';
-import { type API, APIError, type PushParameters } from './api';
+import { API, APIError, type PushParameters } from './api';
+import type { Options } from './type';
 import { getTimestamp, validateBasicAuth } from './utils';
 
 const parseParam = (t: string) =>
@@ -46,10 +47,10 @@ const parseQuery = (c: Context, exclude?: Array<keyof PushParameters>) => {
   return result;
 };
 
-const registerV1 = async (app: Hono, getAPI: () => API) => {
+const registerV1 = async (app: Hono, api: API) => {
   app.get('/:device_key', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...parseQuery(c, ['device_key']),
         device_key: parseParam(c.req.param('device_key')),
       }),
@@ -57,7 +58,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   );
   app.post('/:device_key', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...(await parseBody(c)),
         device_key: parseParam(c.req.param('device_key')),
       }),
@@ -66,7 +67,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
 
   app.get('/:device_key/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...parseQuery(c, ['device_key', 'body']),
         device_key: parseParam(c.req.param('device_key')),
         body: parseParam(c.req.param('body')),
@@ -75,7 +76,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   );
   app.post('/:device_key/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...(await parseBody(c)),
         device_key: parseParam(c.req.param('device_key')),
         body: parseParam(c.req.param('body')),
@@ -85,7 +86,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
 
   app.get('/:device_key/:title/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...parseQuery(c, ['device_key', 'title', 'body']),
         device_key: parseParam(c.req.param('device_key')),
         title: parseParam(c.req.param('title')),
@@ -95,7 +96,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   );
   app.post('/:device_key/:title/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...(await parseBody(c)),
         device_key: parseParam(c.req.param('device_key')),
         title: parseParam(c.req.param('title')),
@@ -106,7 +107,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
 
   app.get('/:device_key/:title/:subtitle/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...parseQuery(c, ['device_key', 'title', 'subtitle', 'body']),
         device_key: parseParam(c.req.param('device_key')),
         title: parseParam(c.req.param('title')),
@@ -117,7 +118,7 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   );
   app.post('/:device_key/:title/:subtitle/:body', async (c) =>
     c.json(
-      await getAPI().push({
+      await api.push({
         ...(await parseBody(c)),
         device_key: parseParam(c.req.param('device_key')),
         title: parseParam(c.req.param('title')),
@@ -128,25 +129,12 @@ const registerV1 = async (app: Hono, getAPI: () => API) => {
   );
 };
 
-export interface BaseAdapter<T extends Env> {
-  basePath: string;
-  createAPI: (c: Context<T>) => Promise<API>;
-  getBasicAuth: (c: Context<T>) => string | undefined;
-}
-
-export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
-  let api: API;
-
-  const getAPI = () => api;
+export const createHono = <T extends Env>(options: Options) => {
+  const api = new API(options);
 
   const app = new Hono<T>();
 
-  const router = app.basePath(adapter.basePath);
-
-  router.use(async (c, next) => {
-    api = await adapter.createAPI(c);
-    await next();
-  });
+  const router = app.basePath(options.urlPrefix || '/');
 
   router.get('/register', async (c) => {
     return c.json(
@@ -183,9 +171,7 @@ export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
   );
 
   router.all('/info', async (c) => {
-    if (
-      !validateBasicAuth(c.req.header('Authorization'), adapter.getBasicAuth(c))
-    ) {
+    if (!validateBasicAuth(c.req.header('Authorization'), options.basicAuth)) {
       return new Response('Unauthorized', {
         status: 401,
         headers: {
@@ -201,7 +187,7 @@ export const createHono = <T extends Env>(adapter: BaseAdapter<T>) => {
   router.post('/push', async (c) => c.json(await api.push(await parseBody(c))));
 
   // compat v1 API
-  registerV1(router as unknown as Hono, getAPI);
+  registerV1(router as unknown as Hono, api);
 
   router.all(
     '/',

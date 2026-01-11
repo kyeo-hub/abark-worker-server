@@ -1,5 +1,5 @@
 import { push } from './apns';
-import type { Database } from './db';
+import type { DBAdapter, Options } from './type';
 import { getTimestamp, newShortUUID } from './utils';
 
 export class APIError extends Error {
@@ -20,12 +20,6 @@ const buildSuccess = (data?: any, message = 'success') => ({
   timestamp: getTimestamp(),
   data,
 });
-
-export interface Options {
-  allowNewDevice: boolean;
-  allowQueryNums: boolean;
-  maxBatchPushCount: number;
-}
 
 export type PushParameters = Partial<{
   device_key: string;
@@ -55,11 +49,11 @@ export type PushParameters = Partial<{
 }>;
 
 export class API {
-  db: Database;
+  db: DBAdapter;
   options: Options;
 
-  constructor(db: Database, options: Options) {
-    this.db = db;
+  constructor(options: Options) {
+    this.db = options.db;
     this.options = options;
   }
 
