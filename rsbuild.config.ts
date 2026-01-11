@@ -75,14 +75,17 @@ export default defineConfig({
           if (process.env.ENTRY === 'edgeone') {
             const cwd = process.cwd();
             const dist = path.join(__dirname, 'dist');
-            const functions = process.env.ROOT_PATH
-              ? path.join(cwd, 'edge-functions', process.env.ROOT_PATH)
-              : path.join(cwd, 'edge-functions');
+            let functions = path.join(cwd, 'edge-functions');
+            if (process.env.ROOT_PATH) {
+              console.log(`Detected ROOT_PATH: ${process.env.ROOT_PATH}`);
+              functions = path.join(functions, process.env.ROOT_PATH);
+            }
             await fs.ensureDir(functions);
             const target = path.join(functions, '[[default]].js');
             if (await fs.pathExists(target)) {
               await fs.remove(target);
             }
+            console.log(`Move handler.js to ${target}`);
             await fs.move(path.join(dist, 'handler.js'), target);
           }
         });
