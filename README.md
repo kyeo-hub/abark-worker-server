@@ -4,23 +4,25 @@
 
 Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 在 各边缘函数环境上的实现。
 
+[GitHub](https://github.com/sylingd/bark-worker-server) [国内镜像](https://gitee.com/sy/bark-worker-server)
+
 ## 安装使用
 
 ### 阿里云 ESA
 
-[部署教程](https://github.com/sylingd/bark-worker-server/wiki/%E9%98%BF%E9%87%8C%E4%BA%91-ESA-%E9%83%A8%E7%BD%B2)
+[部署教程](https://github.com/sylingd/bark-worker-server/wiki/%E9%98%BF%E9%87%8C%E4%BA%91-ESA-%E9%83%A8%E7%BD%B2) [国内镜像](https://gitee.com/sy/bark-worker-server/wikis/%E9%98%BF%E9%87%8C%E4%BA%91-ESA-%E9%83%A8%E7%BD%B2)
 
 ### EdgeOne
 
-**经测试，EdgeOne 边缘函数无法连接 Apple Push 服务器**
+**EdgeOne 边缘节点目前无法直接连接 APNs 服务，需结合规则引擎配置回源**
 
-[部署教程](https://github.com/sylingd/bark-worker-server/wiki/EdgeOne-%E9%83%A8%E7%BD%B2)
+[部署教程](https://github.com/sylingd/bark-worker-server/wiki/EdgeOne-%E9%83%A8%E7%BD%B2) [国内镜像](https://gitee.com/sy/bark-worker-server/wikis/EdgeOne-%E9%83%A8%E7%BD%B2)
 
 ### Cloudflare Worker
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https%3A%2F%2Fgithub.com%2Fsylingd%2Fbark-worker-server)
 
-[部署教程](https://github.com/sylingd/bark-worker-server/wiki/Cloudflare-Workers-%E9%83%A8%E7%BD%B2)
+[部署教程](https://github.com/sylingd/bark-worker-server/wiki/Cloudflare-Workers-%E9%83%A8%E7%BD%B2) [国内镜像](https://gitee.com/sy/bark-worker-server/wikis/Cloudflare-Workers-%E9%83%A8%E7%BD%B2)
 
 ## 已知问题
 
@@ -37,6 +39,7 @@ Bark Worker Server 是一个 [Bark-Server](https://github.com/Finb/bark-server) 
 * `BASIC_AUTH` 是否启用 HTTP Basic Auth，默认不启用
 * `URL_PREFIX` 部署路径，默认为 `/`
   * 例如：当你填写部署路径为 `/bark` 时，在 Bark App 中填写的服务器地址为 `https://你的域名/bark`，注意开头必须要有“/”，末尾不要有“/”
+* `APNS_URL` 自定义 APNs 服务地址
 
 ## 其他
 

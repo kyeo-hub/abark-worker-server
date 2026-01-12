@@ -7,18 +7,19 @@ const defines: any = {
 };
 
 if (process.env.ENTRY === 'esa') {
-  defines['process.env.URL_PREFIX'] = JSON.stringify(process.env.URL_PREFIX);
-  defines['process.env.MAX_BATCH_PUSH_COUNT'] = JSON.stringify(
-    process.env.MAX_BATCH_PUSH_COUNT,
-  );
-  defines['process.env.DB_NAME'] = JSON.stringify(process.env.DB_NAME);
-  defines['process.env.ALLOW_NEW_DEVICE'] = JSON.stringify(
-    process.env.ALLOW_NEW_DEVICE,
-  );
-  defines['process.env.ALLOW_QUERY_NUMS'] = JSON.stringify(
-    process.env.ALLOW_QUERY_NUMS,
-  );
-  defines['process.env.BASIC_AUTH'] = JSON.stringify(process.env.BASIC_AUTH);
+  [
+    'URL_PREFIX',
+    'MAX_BATCH_PUSH_COUNT',
+    'DB_NAME',
+    'ALLOW_NEW_DEVICE',
+    'ALLOW_QUERY_NUMS',
+    'BASIC_AUTH',
+    'APNS_URL',
+  ].forEach((key) => {
+    defines[`process.env.${key}`] = process.env[key]
+      ? JSON.stringify(process.env[key])
+      : 'undefined';
+  });
 }
 
 // Docs: https://rsbuild.rs/config/

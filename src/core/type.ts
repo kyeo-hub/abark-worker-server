@@ -5,6 +5,7 @@ export type BasicEnv = Partial<{
   MAX_BATCH_PUSH_COUNT: string;
   BASIC_AUTH: string;
   URL_PREFIX: string;
+  APNS_URL: string;
 }>;
 
 export type NullLike = null | undefined;
@@ -25,4 +26,5 @@ export interface Options {
   maxBatchPushCount: number;
   basicAuth?: string;
   urlPrefix?: string;
+  apnsUrl?: string;
 }

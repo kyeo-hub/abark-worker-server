@@ -23,6 +23,7 @@ const env = {
   BASIC_AUTH: process.env.BASIC_AUTH || '',
   URL_PREFIX: process.env.URL_PREFIX || '/',
   MAX_BATCH_PUSH_COUNT: process.env.MAX_BATCH_PUSH_COUNT,
+  APNS_URL: process.env.APNS_URL,
 };
 
 const hono = createHono<ESAHonoEnv>({
@@ -32,6 +33,7 @@ const hono = createHono<ESAHonoEnv>({
   maxBatchPushCount: Number(env.MAX_BATCH_PUSH_COUNT),
   urlPrefix: env.URL_PREFIX || '/',
   basicAuth: env.BASIC_AUTH,
+  apnsUrl: env.APNS_URL,
 });
 
 export default {

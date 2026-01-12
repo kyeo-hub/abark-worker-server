@@ -19,6 +19,7 @@ export default {
         maxBatchPushCount: Number(env.MAX_BATCH_PUSH_COUNT),
         urlPrefix: env.URL_PREFIX || '/',
         basicAuth: env.BASIC_AUTH,
+        apnsUrl: env.APNS_URL,
       });
     }
     return hono.fetch(request, env, ctx);

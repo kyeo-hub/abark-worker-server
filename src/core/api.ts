@@ -257,7 +257,13 @@ export class API {
       headers['apns-collapse-id'] = parameters.id;
     }
 
-    const response = await push(this.db, deviceToken, headers, aps);
+    const response = await push(
+      this.db,
+      deviceToken,
+      headers,
+      aps,
+      this.options.apnsUrl,
+    );
 
     if (response.status === 200) {
       return buildSuccess(undefined);

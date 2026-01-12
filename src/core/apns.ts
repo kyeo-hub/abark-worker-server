@@ -74,26 +74,31 @@ export const push = async (
   deviceToken: string,
   headers: Record<string, string>,
   aps: any,
+  domain?: string,
 ) => {
   const AUTHENTICATION_TOKEN = await getAuthToken(db);
 
-  return await fetch(`https://${APNS_HOST_NAME}/3/device/${deviceToken}`, {
-    method: 'POST',
-    headers: JSON.parse(
-      JSON.stringify({
-        'apns-topic': headers['apns-topic'] || TOPIC,
-        'apns-id': headers['apns-id'] || undefined,
-        'apns-collapse-id': headers['apns-collapse-id'] || undefined,
-        'apns-priority':
-          Number(headers['apns-priority']) > 0
-            ? headers['apns-priority']
-            : undefined,
-        'apns-expiration': headers['apns-expiration'] || getTimestamp() + 86400,
-        'apns-push-type': headers['apns-push-type'] || 'alert',
-        authorization: `bearer ${AUTHENTICATION_TOKEN}`,
-        'content-type': 'application/json',
-      }),
-    ),
-    body: JSON.stringify(aps),
-  });
+  return await fetch(
+    `https://${domain || APNS_HOST_NAME}/3/device/${deviceToken}`,
+    {
+      method: 'POST',
+      headers: JSON.parse(
+        JSON.stringify({
+          'apns-topic': headers['apns-topic'] || TOPIC,
+          'apns-id': headers['apns-id'] || undefined,
+          'apns-collapse-id': headers['apns-collapse-id'] || undefined,
+          'apns-priority':
+            Number(headers['apns-priority']) > 0
+              ? headers['apns-priority']
+              : undefined,
+          'apns-expiration':
+            headers['apns-expiration'] || getTimestamp() + 86400,
+          'apns-push-type': headers['apns-push-type'] || 'alert',
+          authorization: `bearer ${AUTHENTICATION_TOKEN}`,
+          'content-type': 'application/json',
+        }),
+      ),
+      body: JSON.stringify(aps),
+    },
+  );
 };

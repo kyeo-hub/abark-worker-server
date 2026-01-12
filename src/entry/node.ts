@@ -28,6 +28,7 @@ const hono = createHono({
   maxBatchPushCount: Number(process.env.MAX_BATCH_PUSH_COUNT),
   urlPrefix: process.env.URL_PREFIX || '/',
   basicAuth: process.env.BASIC_AUTH,
+  apnsUrl: process.env.APNS_URL,
 });
 
 serve(hono, (info) => {

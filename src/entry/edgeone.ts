@@ -24,6 +24,7 @@ export const onRequest = (ctx: EOEventContext) => {
       maxBatchPushCount: Number(ctx.env.MAX_BATCH_PUSH_COUNT),
       urlPrefix: ctx.env.URL_PREFIX || '/',
       basicAuth: ctx.env.BASIC_AUTH,
+      apnsUrl: ctx.env.APNS_URL,
     });
   }
   return hono.fetch(ctx.request, ctx.env);
