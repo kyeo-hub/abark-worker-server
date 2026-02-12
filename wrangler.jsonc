@@ -12,7 +12,7 @@
   "kv_namespaces": [
     {
       "binding": "BARK_KV",
-      "id": "<unique-ID-for-your-database>"
+      "id": "a66556ac0ed5481c90e5a2864e0f2786"
     }
   ],
   "vars": {
