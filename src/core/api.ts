@@ -1,7 +1,9 @@
 import type { Context } from 'hono';
 import { push } from './apns';
-import type { DBAdapter, Options } from './type';
+import { encryptMessage, generateDeviceKey } from './crypto';
+import type { DBAdapter, Device, DeviceType, OfflineMessage, Options } from './type';
 import { getTimestamp, newShortUUID } from './utils';
+import { createWSMessage, type WebSocketHub } from './websocket';
 
 export class APIError extends Error {
   code: number;
@@ -52,47 +54,111 @@ export type PushParameters = Partial<{
 export class API {
   db: DBAdapter;
   options: Options;
+  wsHub?: WebSocketHub;
 
   constructor(options: Options) {
     this.db = options.db;
     this.options = options;
   }
 
-  async register(deviceToken?: string, key?: string) {
-    if (!deviceToken) {
-      throw new APIError(400, 'device token is empty');
-    }
+  /**
+   * 设置 WebSocket Hub
+   */
+  setWebSocketHub(hub: WebSocketHub): void {
+    this.wsHub = hub;
+  }
 
-    if (deviceToken.length > 128) {
-      throw new APIError(400, 'device token is invalid');
-    }
+  /**
+   * 统一设备注册 - 支持 iOS 和 Android
+   */
+  async register(
+    deviceToken?: string,
+    key?: string,
+    deviceType?: DeviceType,
+    publicKey?: string,
+  ) {
+    // 自动检测设备类型
+    const type: DeviceType = deviceType || (deviceToken ? 'ios' : 'android');
 
-    if (!(key && (await this.db.deviceTokenByKey(key)))) {
-      if (this.options.allowNewDevice) {
-        key = await newShortUUID();
-      } else {
-        throw new APIError(
-          500,
-          'device registration failed: register disabled',
-        );
+    if (type === 'ios') {
+      // iOS 设备注册
+      if (!deviceToken) {
+        throw new APIError(400, 'device token is empty');
       }
-    }
 
-    if (deviceToken === 'deleted') {
-      await this.db.deleteDeviceByKey(key);
+      if (deviceToken.length > 128) {
+        throw new APIError(400, 'device token is invalid');
+      }
+
+      if (!(key && (await this.db.deviceTokenByKey(key)))) {
+        if (this.options.allowNewDevice) {
+          key = await newShortUUID();
+        } else {
+          throw new APIError(
+            500,
+            'device registration failed: register disabled',
+          );
+        }
+      }
+
+      if (deviceToken === 'deleted') {
+        await this.db.deleteDeviceByKey(key);
+        return buildSuccess({
+          key: key,
+          device_key: key,
+          device_token: 'deleted',
+        });
+      }
+
+      const device: Device = {
+        device_key: key,
+        device_type: 'ios',
+        device_token: deviceToken,
+        created_at: Date.now(),
+        last_seen: Date.now(),
+      };
+      
+      await this.db.saveDevice(device);
+      
       return buildSuccess({
         key: key,
         device_key: key,
-        device_token: 'deleted',
+        device_type: 'ios',
+        device_token: deviceToken,
+      });
+    } else {
+      // Android 设备注册
+      if (!publicKey) {
+        throw new APIError(400, 'public_key is required for Android devices');
+      }
+
+      if (!key) {
+        if (this.options.allowNewDevice) {
+          key = await newShortUUID();
+        } else {
+          throw new APIError(
+            500,
+            'device registration failed: register disabled',
+          );
+        }
+      }
+
+      const device: Device = {
+        device_key: key,
+        device_type: 'android',
+        public_key: publicKey,
+        created_at: Date.now(),
+        last_seen: Date.now(),
+      };
+      
+      await this.db.saveDevice(device);
+      
+      return buildSuccess({
+        key: key,
+        device_key: key,
+        device_type: 'android',
       });
     }
-
-    await this.db.saveDeviceTokenByKey(key, deviceToken);
-    return buildSuccess({
-      key: key,
-      device_key: key,
-      device_token: deviceToken,
-    });
   }
 
   ping() {
@@ -168,19 +234,38 @@ export class API {
     parameters: PushParameters,
     ctx?: Context,
   ) {
-    const deviceToken = await this.db.deviceTokenByKey(deviceKey);
-    if (deviceToken === undefined) {
+    // 获取设备信息
+    const device = await this.db.getDevice(deviceKey);
+    if (!device) {
       throw new APIError(
         400,
-        `failed to get device token: failed to get [${deviceKey}] device token from database`,
+        `failed to get device: failed to get [${deviceKey}] from database`,
       );
     }
 
-    if (!deviceToken) {
-      throw new APIError(400, 'device token invalid');
+    // 根据设备类型选择推送方式
+    if (device.device_type === 'ios') {
+      return this.pushToIOS(device, parameters, ctx);
+    } else {
+      return this.pushToAndroid(device, parameters);
     }
+  }
+
+  /**
+   * iOS 推送 - 使用 APNs
+   */
+  private async pushToIOS(
+    device: Device,
+    parameters: PushParameters,
+    ctx?: Context,
+  ) {
+    if (!device.device_token) {
+      throw new APIError(400, 'device token not found');
+    }
+
+    const deviceToken = device.device_token;
     if (deviceToken.length > 128) {
-      await this.db.deleteDeviceByKey(deviceKey);
+      await this.db.deleteDeviceByKey(device.device_key);
       throw new APIError(400, 'invalid device token, has been removed');
     }
 
@@ -272,9 +357,84 @@ export class API {
       response.status === 410 ||
       (response.status === 400 && response.message.includes('BadDeviceToken'))
     ) {
-      await this.db.saveDeviceTokenByKey(deviceKey, '');
+      await this.db.saveDeviceTokenByKey(device.device_key, '');
     }
 
     throw new APIError(response.status, `push failed: ${response.message}`);
+  }
+
+  /**
+   * Android 推送 - 使用 WebSocket
+   */
+  private async pushToAndroid(
+    device: Device,
+    parameters: PushParameters,
+  ) {
+    if (!this.wsHub) {
+      throw new APIError(500, 'WebSocket hub not initialized');
+    }
+
+    // 构建消息数据
+    const messageData = {
+      title: parameters.title,
+      body: parameters.body,
+      group: parameters.group,
+      icon: parameters.icon,
+      url: parameters.url,
+      sound: parameters.sound,
+      badge: parameters.badge,
+      // 兼容 Bark 的其他参数
+      subtitle: parameters.subtitle,
+      call: parameters.call,
+      level: parameters.level,
+      volume: parameters.volume,
+      copy: parameters.copy,
+      autoCopy: parameters.autoCopy,
+      action: parameters.action,
+      image: parameters.image,
+      markdown: parameters.markdown,
+    };
+
+    // 创建消息 ID
+    const messageId = parameters.id || crypto.randomUUID();
+
+    // 如果设备有公钥，加密传输
+    let encrypted: string | undefined;
+    if (device.public_key) {
+      try {
+        encrypted = await encryptMessage(
+          device.public_key,
+          JSON.stringify(messageData)
+        );
+      } catch (error) {
+        console.error('Failed to encrypt message:', error);
+        // 加密失败，仍然发送明文
+      }
+    }
+
+    // 创建 WebSocket 消息
+    const wsMessage = createWSMessage(
+      'message',
+      messageId,
+      encrypted ? { encrypted_content: encrypted } : messageData
+    );
+
+    // 通过 WebSocket 发送
+    const delivered = this.wsHub.sendToDevice(device.device_key, wsMessage);
+
+    if (delivered) {
+      return buildSuccess(undefined);
+    } else {
+      // 设备离线，存储消息等待重连
+      const offlineMsg: OfflineMessage = {
+        id: messageId,
+        device_key: device.device_key,
+        data: messageData,
+        encrypted: encrypted,
+        created_at: Date.now(),
+      };
+      await this.db.saveOfflineMessage(offlineMsg);
+      return buildSuccess(undefined, 'message saved for offline delivery');
+    }
   }
 }

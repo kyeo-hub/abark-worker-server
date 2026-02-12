@@ -1,8 +1,9 @@
 import { type Context, type Env, Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { API, APIError, type PushParameters } from './api';
-import type { Options } from './type';
+import type { DeviceType, Options } from './type';
 import { getTimestamp, validateBasicAuth } from './utils';
+import { WebSocketHub } from './websocket';
 
 const parseParam = (t: string) =>
   decodeURIComponent(t.replaceAll('\\+', '%20'));
@@ -157,15 +158,22 @@ const registerV1 = async (app: Hono, api: API) => {
 export const createHono = <T extends Env>(options: Options) => {
   const api = new API(options);
 
+  // 创建 WebSocket Hub
+  const wsHub = new WebSocketHub(options.db);
+  api.setWebSocketHub(wsHub);
+
   const app = new Hono<T>();
 
   const router = app.basePath(options.urlPrefix || '/');
 
+  // 设备注册 - 支持iOS和Android
   router.get('/register', async (c) => {
     return c.json(
       await api.register(
         c.req.query('device_token') || c.req.query('devicetoken'),
         c.req.query('device_key') || c.req.query('key'),
+        c.req.query('device_type') as DeviceType,
+        c.req.query('public_key'),
       ),
     );
   });
@@ -176,6 +184,8 @@ export const createHono = <T extends Env>(options: Options) => {
       await api.register(
         body.device_token || body.devicetoken,
         body.device_key || body.key,
+        body.device_type as DeviceType,
+        body.public_key,
       ),
     );
   });
@@ -220,5 +230,5 @@ export const createHono = <T extends Env>(options: Options) => {
     );
   });
 
-  return app;
+  return { app, wsHub };
 };
