@@ -1,4 +1,4 @@
-import type { Env, Hono } from 'hono';
+import type { Env } from 'hono';
 import { KVAdapter } from '../core/db/kv-adapter';
 import { createHono } from '../core/hono';
 import type { BasicEnv } from '../core/type';
@@ -7,12 +7,12 @@ interface CFHonoEnv extends Env {
   Bindings: BasicEnv;
 }
 
-let hono: Hono<CFHonoEnv>;
+let app: ReturnType<typeof createHono>['app'];
 
 export default {
   fetch(request: Request, env: BasicEnv, ctx: any) {
-    if (!hono) {
-      hono = createHono({
+    if (!app) {
+      const result = createHono({
         db: new KVAdapter((env as any)[env.DB_NAME || 'BARK_KV']),
         allowNewDevice: env.ALLOW_NEW_DEVICE !== 'false',
         allowQueryNums: env.ALLOW_QUERY_NUMS !== 'false',
@@ -21,7 +21,8 @@ export default {
         basicAuth: env.BASIC_AUTH,
         apnsUrl: env.APNS_URL,
       });
+      app = result.app;
     }
-    return hono.fetch(request, env, ctx);
+    return app.fetch(request, env, ctx);
   },
 };
