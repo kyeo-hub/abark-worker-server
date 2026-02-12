@@ -1,5 +1,5 @@
 {
-  "name": "bark-worker-server",
+  "name": "abark-worker-server",
   "compatibility_date": "2025-10-08",
   "build": {
     "command": "npm run build:cf"
